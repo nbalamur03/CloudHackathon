@@ -29,6 +29,7 @@ exports.handler = (event, context, callback) => {
     };
 
     switch (path) {
+
         case '/students':
             switch (httpMethod) {
                 case 'GET':
@@ -85,6 +86,49 @@ exports.handler = (event, context, callback) => {
                         },
                         ConditionExpression: "attribute_not_exists(Pk)",
                         TableName: "Students"
+                    }, function (err, data) {
+                        if (err) {
+                            console.log(err, err.stack); // an error occurred
+                        }
+                        else {
+                            body = {
+                                "message": "Success"
+                            };
+
+                            statusCode = 201;
+
+                            const response = {
+                                statusCode,
+                                body,
+                                headers,
+                            };
+
+                            return callback(null, response);
+                        }
+                    });
+                    break;
+                case 'PUT':
+
+                    let tablename = requestBody.tablename
+                    dynamodb.createTable({
+                        AttributeDefinitions: [
+                            {
+                                AttributeName: "Name",
+                                AttributeType: "S"
+                            },
+                        ],
+                        KeySchema: [
+                            {
+                                Attributename: "Name",
+                                KeyType: "HASH"
+                            },
+                        ],
+                        ProvisionedThroughput: {
+                            ReadCapacityUnits: 5,
+                            WriteCapacityUnits: 5
+                        },
+                        TableName: tablename
+
                     }, function (err, data) {
                         if (err) {
                             console.log(err, err.stack); // an error occurred
@@ -168,7 +212,7 @@ exports.handler = (event, context, callback) => {
                                 let returnItem = {
                                     id: item.Id.S,
                                     name: item.Name.S,
-                                    credits: Number.parseInt(item.Credits.N)
+                                    Credits: Number.parseInt(item.Credits.N)
                                 };
 
                                 returnItems.push(returnItem);
@@ -182,19 +226,21 @@ exports.handler = (event, context, callback) => {
                                 headers,
                             };
 
+
                             return callback(null, response);
                         }
                     });
                     break;
                 case 'POST':
                     let requestBody = JSON.parse(event.body);
+                    let id = requestBody.id;
                     let credits = requestBody.credits;
                     let name = requestBody.name;
 
                     dynamodb.putItem({
                         Item: {
                             "Id": {
-                                "S": name,
+                                "S": id,
                             },
                             "Name": {
                                 "S": name
@@ -232,14 +278,15 @@ exports.handler = (event, context, callback) => {
             break;
 
         case '/courses/{courseId}':
-            let courseId = event.pathParameters.courseId.trim().toLowerCase();
 
             switch (httpMethod) {
                 case 'GET':
+                    let requestBody = JSON.parse(event.body);
+                    let id = requestBody.id;
                     dynamodb.getItem({
                         Key: {
                             "Id": {
-                                "S": courseId
+                                "S": id
                             }
                         },
                         TableName: "Courses"
