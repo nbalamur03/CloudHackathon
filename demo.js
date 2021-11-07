@@ -33,6 +33,7 @@ exports.handler = (event, context, callback) => {
         case '/students':
             switch (httpMethod) {
                 case 'GET':
+
                     dynamodb.scan({
                         TableName: "Students"
                     }, function (err, data) {
@@ -72,13 +73,13 @@ exports.handler = (event, context, callback) => {
 
                 case 'POST':
                     let requestBody = JSON.parse(event.body);
-
+                    let id = requestBody.id;
                     let name = requestBody.name;
 
                     dynamodb.putItem({
                         Item: {
                             "Id": {
-                                "S": name
+                                "S": id
                             },
                             "Name": {
                                 "S": name
@@ -109,7 +110,7 @@ exports.handler = (event, context, callback) => {
                     break;
                 case 'PUT':
 
-                    let tablename = requestBody.tablename
+                    let tablename = requestBody.tablename;
                     dynamodb.createTable({
                         AttributeDefinitions: [
                             {
@@ -155,9 +156,41 @@ exports.handler = (event, context, callback) => {
             }
             break;
         case '/students/{studentId}':
+            let studentId = event.pathParameters.studentId.trim().toLowerCase();
             switch (httpMethod) {
+                case 'GET':
+                    dynamodb.getItem({
+                        Key: {
+                            "Id": {
+                                "S": studentId
+                            }
+                        },
+                        TableName: "Students"
+                    }, function (err, data) {
+                        if (err) {
+                            console.log(err, err.stack); // an error occurred
+                        }
+                        else {
+                            console.log(JSON.stringify(data));           // successful response
+
+                            let returnItem = {
+                                id: data.Item.Id.S,
+                                name: data.Item.Name.S
+                            };
+
+                            body = JSON.stringify(returnItem);
+
+                            const response = {
+                                statusCode,
+                                body,
+                                headers,
+                            };
+
+                            return callback(null, response);
+                        }
+                    });
+                    break;
                 case 'DELETE':
-                    let studentId = event.pathParameters.studentId.trim();
                     dynamodb.deleteItem({
                         Key: {
                             "Id": {
@@ -189,6 +222,7 @@ exports.handler = (event, context, callback) => {
                         }
                     });
                     break;
+
                 default:
                     throw new Error(`Unsupported method "${event.httpMethod}"`);
             }
@@ -197,7 +231,7 @@ exports.handler = (event, context, callback) => {
             switch (httpMethod) {
                 case 'GET':
                     dynamodb.scan({
-                        TableName: "Courses"
+                        TableName: "Students"
                     }, function (err, data) {
                         if (err) {
                             console.log(err, err.stack); // an error occurred
@@ -212,7 +246,6 @@ exports.handler = (event, context, callback) => {
                                 let returnItem = {
                                     id: item.Id.S,
                                     name: item.Name.S,
-                                    Credits: Number.parseInt(item.Credits.N)
                                 };
 
                                 returnItems.push(returnItem);
@@ -278,15 +311,13 @@ exports.handler = (event, context, callback) => {
             break;
 
         case '/courses/{courseId}':
-
+            let courseId = event.pathParameters.courseId.trim().toLowerCase();
             switch (httpMethod) {
                 case 'GET':
-                    let requestBody = JSON.parse(event.body);
-                    let id = requestBody.id;
                     dynamodb.getItem({
                         Key: {
                             "Id": {
-                                "S": id
+                                "S": courseId
                             }
                         },
                         TableName: "Courses"
@@ -316,7 +347,6 @@ exports.handler = (event, context, callback) => {
                     });
                     break;
                 case 'DELETE':
-                    let courseId = event.pathParameters.courseId.trim();
                     dynamodb.deleteItem({
                         Key: {
                             "Id": {
